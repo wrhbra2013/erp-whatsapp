@@ -73,19 +73,6 @@ var API = (function() {
     getUser: function() {
       try { return JSON.parse(localStorage.getItem('wpp_user')); } catch(e) { return null; }
     },
-    isAuthenticated: function() { return !!getToken(); },
-
-    // Conversas
-    sendMessage: function(conversaId, texto) {
-      return this.post('conversas/' + conversaId + '/mensagens', { texto: texto });
-    },
-    // ERP Integration
-    buscarCliente: function(telefone) {
-      return this.post('erp/buscar-cliente', { telefone: telefone });
-    },
-    // Webhook status
-    getWebhookStatus: function() {
-      return this.get('webhook/status');
-    }
+    isAuthenticated: function() { return !!getToken(); }
   };
 })();

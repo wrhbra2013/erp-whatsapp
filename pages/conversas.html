@@ -161,7 +161,7 @@
     var texto = input.value.trim();
     if (!texto || !conversaAtualId) return;
 
-    API.sendMessage(conversaAtualId, texto).then(function() {
+    API.post('conversas/' + conversaAtualId + '/mensagens', { texto: texto }).then(function() {
       input.value = '';
       carregarMensagens(conversaAtualId);
       carregarConversas();
@@ -175,7 +175,7 @@
     var c = conversas.find(function(x) { return String(x.id) === String(conversaAtualId); });
     if (!c || !c.contato_telefone) { showAlert('Telefone não disponível', 'warning'); return; }
 
-    API.buscarCliente(c.contato_telefone).then(function(cliente) {
+    API.post('erp/buscar-cliente', { telefone: c.contato_telefone }).then(function(cliente) {
       if (cliente && cliente.nome) {
         showAlert('Cliente encontrado: ' + cliente.nome + (cliente.documento ? ' (' + cliente.documento + ')' : ''), 'success');
       } else {
@@ -197,7 +197,7 @@
       var texto = (m.conteudo || '')
         .replace(/\{\{nome\}\}/g, (c && c.contato_nome) || '')
         .replace(/\{\{telefone\}\}/g, (c && c.contato_telefone) || '');
-      API.sendMessage(conversaAtualId, texto).then(function() {
+      API.post('conversas/' + conversaAtualId + '/mensagens', { texto: texto }).then(function() {
         showAlert('Modelo enviado com sucesso!', 'success');
         sessionStorage.removeItem('modeloId');
         carregarMensagens(conversaAtualId);
