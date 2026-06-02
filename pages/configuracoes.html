@@ -55,6 +55,34 @@
     </div>
   </div>
 
+  <!-- PAINEL QR CODE WHATSAPP -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-qr-code-scan"></i> Conexão via QR Code</h3>
+    </div>
+    <div class="card-body" style="text-align:center;">
+      <div id="wppQrStatus" style="margin-bottom:12px;">
+        <span class="badge badge-secondary" id="wppStatusBadge">Desconectado</span>
+      </div>
+      <div id="wppQrContainer" style="display:none; background:#fff; padding:16px; border-radius:8px; display:inline-block; margin:0 auto;">
+        <img id="wppQrImage" src="" alt="QR Code" style="width:280px;height:280px;image-rendering:pixelated;">
+        <p style="font-size:0.85rem;color:#666;margin-top:8px;">Escaneie o QR Code acima com o WhatsApp do seu celular</p>
+      </div>
+      <div id="wppConnectedInfo" style="display:none;">
+        <i class="bi bi-check-circle-fill" style="font-size:3rem;color:#25D366;"></i>
+        <p style="font-size:1rem;color:var(--text-color);margin-top:8px;">WhatsApp conectado!</p>
+      </div>
+      <div id="wppErrorInfo" style="display:none;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:3rem;color:#dc3545;"></i>
+        <p style="font-size:1rem;color:var(--text-color);margin-top:8px;">Erro na conexão</p>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
+        <button class="btn btn-primary" onclick="conectarWhatsApp()" id="btnWppConnect"><i class="bi bi-plug"></i> Conectar</button>
+        <button class="btn btn-danger" onclick="desconectarWhatsApp()" id="btnWppDisconnect" style="display:none;"><i class="bi bi-plug-fill"></i> Desconectar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="card mb-6">
     <div class="card-header">
       <h3 class="card-title"><i class="bi bi-building"></i> Integração ERP</h3>
@@ -187,6 +215,84 @@
       .catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
     return false;
   }
+
+  /* ===== WhatsApp QR Code ===== */
+  var wppCheckInterval = null;
+
+  function atualizarStatusWpp() {
+    API.get('whatsapp/status').then(function(s) {
+      var badge = document.getElementById('wppStatusBadge');
+      var qrContainer = document.getElementById('wppQrContainer');
+      var qrImage = document.getElementById('wppQrImage');
+      var connectedInfo = document.getElementById('wppConnectedInfo');
+      var errorInfo = document.getElementById('wppErrorInfo');
+      var btnConnect = document.getElementById('btnWppConnect');
+      var btnDisconnect = document.getElementById('btnWppDisconnect');
+      if (s.status === 'connected' && s.ready) {
+        badge.className = 'badge badge-success';
+        badge.textContent = 'Conectado';
+        qrContainer.style.display = 'none';
+        connectedInfo.style.display = 'block';
+        errorInfo.style.display = 'none';
+        btnConnect.style.display = 'none';
+        btnDisconnect.style.display = 'inline-flex';
+        if (wppCheckInterval) { clearInterval(wppCheckInterval); wppCheckInterval = null; }
+      } else if (s.status === 'connecting') {
+        badge.className = 'badge badge-warning';
+        badge.textContent = 'Aguardando leitura...';
+        connectedInfo.style.display = 'none';
+        errorInfo.style.display = 'none';
+        btnConnect.style.display = 'none';
+        btnDisconnect.style.display = 'inline-flex';
+        if (s.hasQrCode) {
+          qrContainer.style.display = 'inline-block';
+          API.get('whatsapp/qrcode').then(function(q) {
+            if (q.qrcode) qrImage.src = q.qrcode;
+          }).catch(function() {});
+        }
+      } else if (s.status === 'error') {
+        badge.className = 'badge badge-danger';
+        badge.textContent = 'Erro';
+        qrContainer.style.display = 'none';
+        connectedInfo.style.display = 'none';
+        errorInfo.style.display = 'block';
+        btnConnect.style.display = 'inline-flex';
+        btnDisconnect.style.display = 'none';
+      } else {
+        badge.className = 'badge badge-secondary';
+        badge.textContent = 'Desconectado';
+        qrContainer.style.display = 'none';
+        connectedInfo.style.display = 'none';
+        errorInfo.style.display = 'none';
+        btnConnect.style.display = 'inline-flex';
+        btnDisconnect.style.display = 'none';
+      }
+    }).catch(function() {});
+  }
+
+  function conectarWhatsApp() {
+    API.post('whatsapp/connect', {}).then(function() {
+      showAlert('Conectando ao WhatsApp... Aguarde o QR Code.', 'info');
+      atualizarStatusWpp();
+      if (!wppCheckInterval) {
+        wppCheckInterval = setInterval(atualizarStatusWpp, 3000);
+      }
+    }).catch(function(err) {
+      showAlert('Erro: ' + err.message, 'danger');
+    });
+  }
+
+  function desconectarWhatsApp() {
+    API.post('whatsapp/logout', {}).then(function() {
+      showAlert('WhatsApp desconectado.', 'success');
+      if (wppCheckInterval) { clearInterval(wppCheckInterval); wppCheckInterval = null; }
+      atualizarStatusWpp();
+    }).catch(function(err) {
+      showAlert('Erro: ' + err.message, 'danger');
+    });
+  }
+
+  setTimeout(atualizarStatusWpp, 500);
   </script>
   <script src="../components/footer.js"></script>
 </body>
