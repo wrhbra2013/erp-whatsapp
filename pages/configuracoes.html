@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurações - ERP WhatsApp</title>
+  <link rel="stylesheet" href="../static/css/default.css">
+  <link rel="stylesheet" href="../static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
+  <script src="../static/js/api.js"></script>
+  <script src="../static/js/main.js"></script>
+</head>
+<body>
+  <script>var ROOT='..';</script>
+  <script src="../components/header.js"></script>
+
+  <div style="margin-bottom:20px;">
+    <h2 style="font-size:1.3rem;color:var(--heading-color);margin:0;">Configurações</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin:4px 0 0;">Configurações da plataforma WhatsApp</p>
+  </div>
+
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-whatsapp"></i> Conexão WhatsApp</h3>
+    </div>
+    <div class="card-body">
+      <form id="wppConfigForm" onsubmit="return salvarConfigWpp(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Número do WhatsApp (ID)</label>
+            <input type="text" id="cfgNumero" class="form-control input-phone" placeholder="(14) 99999-0000">
+          </div>
+          <div class="form-group">
+            <label>Token de Acesso</label>
+            <input type="password" id="cfgToken" class="form-control" placeholder="Token da API WhatsApp">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="cfgProvider" class="form-control">
+              <option value="evolution">Evolution API</option>
+              <option value="whatsapp-web">WhatsApp Web.js</option>
+              <option value="whatsapp-cloud">WhatsApp Cloud API</option>
+              <option value="wwebjs">wwebjs</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Webhook URL</label>
+            <input type="text" id="cfgWebhook" class="form-control" placeholder="https://api.projetosdinamicos.com.br/whatsapp/webhook">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-building"></i> Integração ERP</h3>
+    </div>
+    <div class="card-body">
+      <form id="erpConfigForm" onsubmit="return salvarConfigERP(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>URL da API ERP</label>
+            <input type="text" id="cfgErpUrl" class="form-control" value="https://api.projetosdinamicos.com.br/erp" placeholder="URL da API do ERP">
+          </div>
+          <div class="form-group">
+            <label>Token ERP</label>
+            <input type="password" id="cfgErpToken" class="form-control" placeholder="Token de integração">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label class="switch" style="margin-right:8px;">
+            <input type="checkbox" id="cfgAutoBusca" checked>
+            <span class="slider"></span>
+          </label>
+          <span style="font-size:0.9rem;">Busca automática de cliente ao receber mensagem</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:16px;"><i class="bi bi-check-lg"></i> Salvar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-chat-square-text"></i> Respostas Padrão</h3>
+    </div>
+    <div class="card-body">
+      <form id="defaultMsgForm" onsubmit="return salvarMsgPadrao(event)">
+        <div class="form-group">
+          <label>Mensagem de ausência (fora do horário)</label>
+          <textarea id="cfgMsgAusencia" class="form-control" rows="2">Olá! No momento estamos fora do horário de atendimento. Deixe sua mensagem que retornaremos em breve.</textarea>
+        </div>
+        <div class="form-group">
+          <label>Mensagem de boas-vindas</label>
+          <textarea id="cfgMsgBoasVindas" class="form-control" rows="2">Olá {{nome}}! Bem-vindo(a) ao ERP WhatsApp. Como podemos ajudar?</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Horário de início</label>
+            <input type="time" id="cfgHrInicio" class="form-control" value="08:00">
+          </div>
+          <div class="form-group">
+            <label>Horário de fim</label>
+            <input type="time" id="cfgHrFim" class="form-control" value="18:00">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-info-circle"></i> Informações do Sistema</h3>
+    </div>
+    <div class="card-body">
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Status</label>
+          <div><span class="badge badge-success" id="cfgStatus">Online</span></div>
+        </div>
+        <div class="form-group">
+          <label>Versão</label>
+          <div><span class="badge badge-info">v1.0.0</span></div>
+        </div>
+        <div class="form-group">
+          <label>Último Webhook</label>
+          <div><span class="text-muted" id="cfgLastWebhook">-</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Configurações';
+
+  API.get('settings').then(function(data) {
+    if (data && typeof data === 'object') {
+      document.getElementById('cfgNumero').value = data.wpp_numero || '';
+      document.getElementById('cfgToken').value = data.wpp_token || '';
+      document.getElementById('cfgProvider').value = data.wpp_provider || 'evolution';
+      document.getElementById('cfgWebhook').value = data.wpp_webhook || '';
+      document.getElementById('cfgErpUrl').value = data.erp_url || '';
+      document.getElementById('cfgErpToken').value = data.erp_token || '';
+      document.getElementById('cfgAutoBusca').checked = data.auto_busca !== 'false';
+      document.getElementById('cfgMsgAusencia').value = data.msg_ausencia || '';
+      document.getElementById('cfgMsgBoasVindas').value = data.msg_boasvindas || '';
+      document.getElementById('cfgHrInicio').value = data.hr_inicio || '08:00';
+      document.getElementById('cfgHrFim').value = data.hr_fim || '18:00';
+    }
+  }).catch(function() {});
+
+  function salvarConfigWpp(e) {
+    e.preventDefault();
+    API.post('settings', {
+      wpp_numero: document.getElementById('cfgNumero').value,
+      wpp_token: document.getElementById('cfgToken').value,
+      wpp_provider: document.getElementById('cfgProvider').value,
+      wpp_webhook: document.getElementById('cfgWebhook').value
+    }).then(function() { showAlert('Configurações WhatsApp salvas!', 'success'); })
+      .catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+    return false;
+  }
+
+  function salvarConfigERP(e) {
+    e.preventDefault();
+    API.post('settings', {
+      erp_url: document.getElementById('cfgErpUrl').value,
+      erp_token: document.getElementById('cfgErpToken').value,
+      auto_busca: document.getElementById('cfgAutoBusca').checked ? 'true' : 'false'
+    }).then(function() { showAlert('Configurações ERP salvas!', 'success'); })
+      .catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+    return false;
+  }
+
+  function salvarMsgPadrao(e) {
+    e.preventDefault();
+    API.post('settings', {
+      msg_ausencia: document.getElementById('cfgMsgAusencia').value,
+      msg_boasvindas: document.getElementById('cfgMsgBoasVindas').value,
+      hr_inicio: document.getElementById('cfgHrInicio').value,
+      hr_fim: document.getElementById('cfgHrFim').value
+    }).then(function() { showAlert('Mensagens padrão salvas!', 'success'); })
+      .catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+    return false;
+  }
+  </script>
+  <script src="../components/footer.js"></script>
+</body>
+</html>

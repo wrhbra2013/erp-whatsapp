@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios - ERP WhatsApp</title>
+  <link rel="stylesheet" href="../static/css/default.css">
+  <link rel="stylesheet" href="../static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
+  <script src="../static/js/api.js"></script>
+  <script src="../static/js/main.js"></script>
+  <style>
+    .report-card { background: var(--container-bg); border-radius: 12px; padding: 24px; box-shadow: var(--container-shadow); cursor: pointer; transition: all 0.2s; border: 1px solid var(--border-color); }
+    .report-card:hover { border-color: var(--brand-secondary); box-shadow: 0 4px 12px rgba(18,140,126,0.15); transform: translateY(-2px); }
+    .report-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <script>var ROOT='..';</script>
+  <script src="../components/header.js"></script>
+
+  <div style="margin-bottom:20px;">
+    <h2 style="font-size:1.3rem;color:var(--heading-color);margin:0;">Relatórios</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin:4px 0 0;">Métricas e análises do WhatsApp</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="report-card" onclick="gerarRelatorio('mensagens')">
+      <div class="report-icon" style="background:#dbeafe;color:#1e40af;"><i class="bi bi-chat-square-text"></i></div>
+      <h4 style="font-size:1rem;margin-bottom:4px;">Mensagens</h4>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Volume de mensagens enviadas e recebidas por período</p>
+    </div>
+    <div class="report-card" onclick="gerarRelatorio('conversas')">
+      <div class="report-icon" style="background:#d1fae5;color:#065f46;"><i class="bi bi-people"></i></div>
+      <h4 style="font-size:1rem;margin-bottom:4px;">Conversas</h4>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Total de conversas ativas e tempo médio de resposta</p>
+    </div>
+    <div class="report-card" onclick="gerarRelatorio('contatos')">
+      <div class="report-icon" style="background:#fef3c7;color:#92400e;"><i class="bi bi-person-lines-fill"></i></div>
+      <h4 style="font-size:1rem;margin-bottom:4px;">Contatos</h4>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Base de contatos e crescimento ao longo do tempo</p>
+    </div>
+    <div class="report-card" onclick="gerarRelatorio('automacao')">
+      <div class="report-icon" style="background:#ede9fe;color:#5b21b6;"><i class="bi bi-robot"></i></div>
+      <h4 style="font-size:1rem;margin-bottom:4px;">Automação</h4>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Efetividade das regras automáticas e acionamentos</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-download"></i> Dados do Relatório</h3>
+    </div>
+    <div class="card-body" id="reportOutput">
+      <p class="text-muted" style="text-align:center;padding:40px;">
+        <i class="bi bi-bar-chart" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+        Selecione um relatório para visualizar
+      </p>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Relatórios';
+
+  function gerarRelatorio(tipo) {
+    var output = document.getElementById('reportOutput');
+    output.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    var titles = { mensagens: 'Mensagens', conversas: 'Conversas', contatos: 'Contatos', automacao: 'Automação' };
+    var endpointMap = { mensagens: 'mensagens', conversas: 'conversas', contatos: 'contatos', automacao: 'automacoes' };
+    var ep = endpointMap[tipo] || 'conversas';
+
+    API.get(ep).then(function(data) {
+      var items = Array.isArray(data) ? data : [];
+      var html = '<h4 style="margin-bottom:16px;">' + titles[tipo] + '</h4>' +
+        '<p class="text-muted" style="margin-bottom:16px;">Total: <strong>' + items.length + '</strong> registros</p>';
+      if (items.length > 0) {
+        var cols = Object.keys(items[0]).filter(function(k) { return k !== 'id' && k !== 'senha'; }).slice(0, 6);
+        html += '<div class="table-container"><table><thead><tr>' +
+          cols.map(function(c) { return '<th>' + c.replace(/_/g, ' ').toUpperCase() + '</th>'; }).join('') +
+          '</tr></thead><tbody>';
+        items.slice(0, 30).forEach(function(row) {
+          html += '<tr>' + cols.map(function(c) {
+            var v = row[c];
+            if (v === null || v === undefined) return '<td>-</td>';
+            return '<td>' + String(v).slice(0, 60) + '</td>';
+          }).join('') + '</tr>';
+        });
+        html += '</tbody></table></div><p class="text-muted" style="margin-top:8px;font-size:0.8rem;">Exibindo até 30 registros</p>';
+      } else {
+        html += '<p class="text-muted" style="text-align:center;padding:20px;">Nenhum dado disponível</p>';
+      }
+      output.innerHTML = html;
+    }).catch(function(err) {
+      output.innerHTML = '<div class="alert alert-danger">Erro: ' + err.message + '</div>';
+    });
+  }
+  </script>
+  <script src="../components/footer.js"></script>
+</body>
+</html>

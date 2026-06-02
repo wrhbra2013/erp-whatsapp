@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automação - ERP WhatsApp</title>
+  <link rel="stylesheet" href="../static/css/default.css">
+  <link rel="stylesheet" href="../static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
+  <script src="../static/js/api.js"></script>
+  <script src="../static/js/main.js"></script>
+</head>
+<body>
+  <script>var ROOT='..';</script>
+  <script src="../components/header.js"></script>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h2 style="font-size:1.3rem;color:var(--heading-color);margin:0;">Automação</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:4px 0 0;">Regras de resposta automática e integrações</p>
+    </div>
+    <button class="btn btn-primary" onclick="abrirModalRegra()"><i class="bi bi-plus-lg"></i> Nova Regra</button>
+  </div>
+
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-toggle-on"></i> Status do Bot</h3>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <label class="switch">
+          <input type="checkbox" id="botAtivo" onchange="toggleBot(this.checked)" checked>
+          <span class="slider"></span>
+        </label>
+        <span style="font-weight:500;" id="botStatusText">Chatbot Ativo</span>
+        <span style="margin-left:auto;font-size:0.85rem;color:var(--text-muted);">
+          <i class="bi bi-info-circle"></i> Quando ativo, respostas automáticas são enviadas com base nas regras abaixo
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Ativo</th>
+          <th>Gatilho</th>
+          <th>Tipo</th>
+          <th>Resposta (Modelo)</th>
+          <th>Prioridade</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="regrasTable">
+        <tr><td colspan="6" class="text-center text-muted" style="padding:40px;"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card mt-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-plug"></i> Integrações ERP</h3>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;">
+        <div style="padding:16px;border:1px solid var(--border-color);border-radius:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:36px;height:36px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#1e40af;">
+              <i class="bi bi-people"></i>
+            </div>
+            <div><strong>Busca de Cliente</strong><br><small class="text-muted">Consulta dados do cliente no ERP pelo telefone</small></div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" onchange="showAlert('Integração atualizada!','success')" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="padding:16px;border:1px solid var(--border-color);border-radius:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:36px;height:36px;background:#d1fae5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#065f46;">
+              <i class="bi bi-box"></i>
+            </div>
+            <div><strong>Consulta de Produto</strong><br><small class="text-muted">Busca preço e disponibilidade no catálogo</small></div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" onchange="showAlert('Integração atualizada!','success')">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="padding:16px;border:1px solid var(--border-color);border-radius:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:36px;height:36px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#92400e;">
+              <i class="bi bi-receipt"></i>
+            </div>
+            <div><strong>Notificação NF-e</strong><br><small class="text-muted">Envia link da NF-e por WhatsApp automaticamente</small></div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" onchange="showAlert('Integração atualizada!','success')" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="regraModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="regModalTitle">Nova Regra de Automação</h3>
+        <button class="modal-close" onclick="fecharModal('regraModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="regraForm" onsubmit="return salvarRegra(event)">
+          <input type="hidden" id="rId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gatilho (palavra-chave) *</label>
+              <input type="text" id="rGatilho" class="form-control" required placeholder="Ex: olá, preço, horário">
+              <small class="text-muted">Quando o contato enviar esta palavra, a regra será ativada</small>
+            </div>
+            <div class="form-group">
+              <label>Tipo</label>
+              <select id="rTipo" class="form-control">
+                <option value="saudacao">Saudação</option>
+                <option value="consulta">Consulta</option>
+                <option value="suporte">Suporte</option>
+                <option value="vendas">Vendas</option>
+                <option value="erp">Integração ERP</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Modelo de Resposta</label>
+            <select id="rModelo" class="form-control">
+              <option value="">Selecione um modelo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ou resposta personalizada</label>
+            <textarea id="rResposta" class="form-control" rows="3" placeholder="Digite a resposta automática..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Prioridade</label>
+              <select id="rPrioridade" class="form-control">
+                <option value="1">1 - Alta</option>
+                <option value="2">2 - Média</option>
+                <option value="3">3 - Baixa</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ativo</label>
+              <select id="rAtivo" class="form-control">
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="fecharModal('regraModal')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Regra</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Automação';
+
+  function toggleBot(ativo) {
+    document.getElementById('botStatusText').textContent = ativo ? 'Chatbot Ativo' : 'Chatbot Inativo';
+    API.post('automacoes/toggle', { ativo: ativo }).then(function() {
+      showAlert(ativo ? 'Bot ativado!' : 'Bot desativado!', ativo ? 'success' : 'warning');
+    }).catch(function() {});
+  }
+
+  function carregarRegras() {
+    API.get('automacoes').then(function(data) {
+      var regras = Array.isArray(data) ? data : [];
+      var tbody = document.getElementById('regrasTable');
+      if (regras.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:40px;">Nenhuma regra configurada</td></tr>';
+        return;
+      }
+      tbody.innerHTML = regras.map(function(r) {
+        return '<tr>' +
+          '<td><label class="switch" style="margin:0;"><input type="checkbox" ' + (r.ativo !== 'Não' ? 'checked' : '') + ' onchange="toggleRegra(\'' + r.id + '\',this.checked)"><span class="slider"></span></label></td>' +
+          '<td><strong>' + (r.gatilho || '-') + '</strong></td>' +
+          '<td><span class="badge badge-info">' + (r.tipo || 'geral') + '</span></td>' +
+          '<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r.resposta || r.modelo_titulo || '-') + '</td>' +
+          '<td>' + (r.prioridade || '3') + '</td>' +
+          '<td><button class="btn btn-sm btn-secondary" onclick="editarRegra(\'' + r.id + '\')"><i class="bi bi-pencil"></i></button> ' +
+          '<button class="btn btn-sm btn-danger" onclick="excluirRegra(\'' + r.id + '\')"><i class="bi bi-trash"></i></button></td>' +
+        '</tr>';
+      }).join('');
+    }).catch(function(err) {
+      document.getElementById('regrasTable').innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:40px;">Erro: ' + err.message + '</td></tr>';
+    });
+  }
+
+  function toggleRegra(id, ativo) {
+    API.put('automacoes/' + id, { ativo: ativo ? 'Sim' : 'Não' }).catch(function() {});
+  }
+
+  function abrirModalRegra() {
+    document.getElementById('regraForm').reset();
+    document.getElementById('rId').value = '';
+    document.getElementById('regModalTitle').textContent = 'Nova Regra';
+    // Load modelos
+    API.get('modelos').then(function(data) {
+      var modelos = Array.isArray(data) ? data : [];
+      var sel = document.getElementById('rModelo');
+      sel.innerHTML = '<option value="">Selecione um modelo</option>' +
+        modelos.map(function(m) { return '<option value="' + m.id + '">' + (m.titulo || '') + '</option>'; }).join('');
+    });
+    document.getElementById('regraModal').classList.add('active');
+  }
+
+  function fecharModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  function salvarRegra(e) {
+    e.preventDefault();
+    var id = document.getElementById('rId').value;
+    var data = {
+      gatilho: document.getElementById('rGatilho').value,
+      tipo: document.getElementById('rTipo').value,
+      modelo_id: document.getElementById('rModelo').value,
+      resposta: document.getElementById('rResposta').value,
+      prioridade: document.getElementById('rPrioridade').value,
+      ativo: document.getElementById('rAtivo').value
+    };
+    var p = id ? API.put('automacoes/' + id, data) : API.post('automacoes', data);
+    p.then(function() {
+      showAlert(id ? 'Regra atualizada!' : 'Regra criada!', 'success');
+      fecharModal('regraModal');
+      carregarRegras();
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+    return false;
+  }
+
+  function editarRegra(id) {
+    API.get('automacoes/' + id).then(function(r) {
+      if (!r) return;
+      document.getElementById('rId').value = r.id;
+      document.getElementById('rGatilho').value = r.gatilho || '';
+      document.getElementById('rTipo').value = r.tipo || 'consulta';
+      document.getElementById('rResposta').value = r.resposta || '';
+      document.getElementById('rPrioridade').value = r.prioridade || '2';
+      document.getElementById('rAtivo').value = r.ativo || 'Sim';
+      document.getElementById('regModalTitle').textContent = 'Editar Regra';
+      // Load modelos
+      API.get('modelos').then(function(data) {
+        var modelos = Array.isArray(data) ? data : [];
+        var sel = document.getElementById('rModelo');
+        sel.innerHTML = '<option value="">Selecione</option>' +
+          modelos.map(function(m) { return '<option value="' + m.id + '" ' + (String(m.id) === String(r.modelo_id) ? 'selected' : '') + '>' + (m.titulo || '') + '</option>'; }).join('');
+      });
+      document.getElementById('regraModal').classList.add('active');
+    });
+  }
+
+  function excluirRegra(id) {
+    if (!confirm('Excluir regra?')) return;
+    API.del('automacoes/' + id).then(function() {
+      showAlert('Regra excluída!', 'success');
+      carregarRegras();
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+  }
+
+  carregarRegras();
+  </script>
+  <script src="../components/footer.js"></script>
+</body>
+</html>

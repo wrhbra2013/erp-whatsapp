@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - ERP WhatsApp</title>
+  <link rel="stylesheet" href="static/css/default.css">
+  <link rel="stylesheet" href="static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="static/css/favicon/favicon.ico">
+  <script src="static/js/api.js"></script>
+  <script src="static/js/main.js"></script>
+</head>
+<body>
+  <script>var ROOT='.';</script>
+  <script src="components/header.js"></script>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card-header">
+        <div class="stat-card-icon" style="background:#dbeafe;color:#1e40af;"><i class="bi bi-chat-square-text"></i></div>
+        <span class="badge badge-info">+12%</span>
+      </div>
+      <div class="stat-card-number" id="statConversas">0</div>
+      <div class="stat-card-label">Conversas Ativas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-header">
+        <div class="stat-card-icon" style="background:#d1fae5;color:#065f46;"><i class="bi bi-people"></i></div>
+        <span class="badge badge-success">+8%</span>
+      </div>
+      <div class="stat-card-number" id="statContatos">0</div>
+      <div class="stat-card-label">Contatos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-header">
+        <div class="stat-card-icon" style="background:#fef3c7;color:#92400e;"><i class="bi bi-send"></i></div>
+        <span class="badge badge-warning">+23%</span>
+      </div>
+      <div class="stat-card-number" id="statEnviadas">0</div>
+      <div class="stat-card-label">Mensagens Hoje</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-header">
+        <div class="stat-card-icon" style="background:#fee2e2;color:#991b1b;"><i class="bi bi-robot"></i></div>
+        <span class="badge badge-success">98%</span>
+      </div>
+      <div class="stat-card-number" id="statAuto">0</div>
+      <div class="stat-card-label">Automações Ativas</div>
+    </div>
+  </div>
+
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-clock-history"></i> Últimas Conversas</h3>
+      <a href="pages/conversas.html" class="btn btn-primary btn-sm">Ver Todas</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-container" style="box-shadow:none;border-radius:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Contato</th>
+              <th>Telefone</th>
+              <th>Última Mensagem</th>
+              <th>Status</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="recentConversas">
+            <tr><td colspan="5" class="text-center text-muted" style="padding:40px;">
+              <i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
+              Nenhuma conversa recente
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-file-earmark-text"></i> Modelos Recentes</h3>
+        <a href="pages/modelos.html" class="btn btn-sm btn-secondary">Gerenciar</a>
+      </div>
+      <div class="card-body">
+        <div id="recentModelos">
+          <p class="text-muted" style="text-align:center;padding:20px;">Nenhum modelo cadastrado</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-gear-wide-connected"></i> Automações</h3>
+        <a href="pages/automacao.html" class="btn btn-sm btn-secondary">Gerenciar</a>
+      </div>
+      <div class="card-body">
+        <div id="recentAutomacoes">
+          <p class="text-muted" style="text-align:center;padding:20px;">Nenhuma automação configurada</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Dashboard';
+
+  var API_BASE = 'https://api.projetosdinamicos.com.br/whatsapp';
+  var token = localStorage.getItem('wpp_token');
+  var headers = {};
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
+  function countIt(endpoint, elId) {
+    fetch(API_BASE + '/' + endpoint, { headers: headers })
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(d) {
+        var el = document.getElementById(elId);
+        if (el && Array.isArray(d)) el.textContent = d.length;
+      }).catch(function() {});
+  }
+
+  countIt('conversas', 'statConversas');
+  countIt('contatos', 'statContatos');
+  countIt('mensagens/hoje', 'statEnviadas');
+  countIt('automacoes', 'statAuto');
+
+  var user = API.getUser();
+  if (user) {
+    var ud = document.getElementById('userDisplay');
+    if (ud) ud.textContent = user.nome || user.email;
+  }
+  </script>
+
+  <script src="components/footer.js"></script>
+</body>
+</html>

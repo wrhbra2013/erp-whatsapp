@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modelos de Mensagem - ERP WhatsApp</title>
+  <link rel="stylesheet" href="../static/css/default.css">
+  <link rel="stylesheet" href="../static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
+  <script src="../static/js/api.js"></script>
+  <script src="../static/js/main.js"></script>
+</head>
+<body>
+  <script>var ROOT='..';</script>
+  <script src="../components/header.js"></script>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h2 style="font-size:1.3rem;color:var(--heading-color);margin:0;">Modelos de Mensagem</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:4px 0 0;">Templates reutilizáveis para respostas rápidas</p>
+    </div>
+    <button class="btn btn-primary" onclick="abrirModalModelo()"><i class="bi bi-plus-lg"></i> Novo Modelo</button>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Categoria</th>
+          <th>Conteúdo</th>
+          <th>Variáveis</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="modelosTable">
+        <tr><td colspan="6" class="text-center text-muted" style="padding:40px;"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="modeloModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modModalTitle">Novo Modelo</h3>
+        <button class="modal-close" onclick="fecharModal('modeloModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="modeloForm" onsubmit="return salvarModelo(event)">
+          <input type="hidden" id="mId">
+          <div class="form-row">
+            <div class="form-group"><label>Título *</label><input type="text" id="mTitulo" class="form-control" required placeholder="Ex: Boas-vindas"></div>
+            <div class="form-group"><label>Categoria</label>
+              <select id="mCategoria" class="form-control">
+                <option value="Boas-vindas">Boas-vindas</option>
+                <option value="Atendimento">Atendimento</option>
+                <option value="Vendas">Vendas</option>
+                <option value="Suporte">Suporte</option>
+                <option value="Cobrança">Cobrança</option>
+                <option value="Notificaçao">Notificação</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Conteúdo *</label>
+            <textarea id="mConteudo" class="form-control" rows="6" required placeholder="Olá {{nome}}, tudo bem? Como podemos ajudar?"></textarea>
+            <small class="text-muted">Use <code>{{variavel}}</code> para substituir dinamicamente (ex: {{nome}}, {{cliente}}, {{produto}})</small>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="fecharModal('modeloModal')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Modelo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Modelos de Mensagem';
+
+  function carregarModelos() {
+    API.get('modelos').then(function(data) {
+      var modelos = Array.isArray(data) ? data : [];
+      var tbody = document.getElementById('modelosTable');
+      if (modelos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:40px;">Nenhum modelo cadastrado</td></tr>';
+        return;
+      }
+      tbody.innerHTML = modelos.map(function(m) {
+        var vars = (m.conteudo || '').match(/\{\{\w+\}\}/g) || [];
+        return '<tr>' +
+          '<td><strong>' + (m.titulo || '-') + '</strong></td>' +
+          '<td><span class="badge badge-info">' + (m.categoria || 'Outro') + '</span></td>' +
+          '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (m.conteudo || '-') + '</td>' +
+          '<td>' + (vars.length > 0 ? vars.join(', ') : '-') + '</td>' +
+          '<td><span class="badge ' + ((m.status||'Ativo')==='Ativo'?'badge-success':'badge-danger') + '">' + (m.status||'Ativo') + '</span></td>' +
+          '<td><button class="btn btn-sm btn-success" onclick="usarModelo(\'' + m.id + '\')" title="Usar"><i class="bi bi-send"></i></button> ' +
+          '<button class="btn btn-sm btn-secondary" onclick="editarModelo(\'' + m.id + '\')"><i class="bi bi-pencil"></i></button> ' +
+          '<button class="btn btn-sm btn-danger" onclick="excluirModelo(\'' + m.id + '\')"><i class="bi bi-trash"></i></button></td>' +
+        '</tr>';
+      }).join('');
+    }).catch(function(err) {
+      document.getElementById('modelosTable').innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:40px;">Erro: ' + err.message + '</td></tr>';
+    });
+  }
+
+  function abrirModalModelo() {
+    document.getElementById('modeloForm').reset();
+    document.getElementById('mId').value = '';
+    document.getElementById('modModalTitle').textContent = 'Novo Modelo';
+    document.getElementById('modeloModal').classList.add('active');
+  }
+
+  function fecharModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  function salvarModelo(e) {
+    e.preventDefault();
+    var id = document.getElementById('mId').value;
+    var data = {
+      titulo: document.getElementById('mTitulo').value,
+      categoria: document.getElementById('mCategoria').value,
+      conteudo: document.getElementById('mConteudo').value,
+      status: 'Ativo'
+    };
+    var p = id ? API.put('modelos/' + id, data) : API.post('modelos', data);
+    p.then(function() {
+      showAlert(id ? 'Modelo atualizado!' : 'Modelo criado!', 'success');
+      fecharModal('modeloModal');
+      carregarModelos();
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+    return false;
+  }
+
+  function editarModelo(id) {
+    API.get('modelos/' + id).then(function(m) {
+      if (!m) return;
+      document.getElementById('mId').value = m.id;
+      document.getElementById('mTitulo').value = m.titulo || '';
+      document.getElementById('mCategoria').value = m.categoria || 'Outro';
+      document.getElementById('mConteudo').value = m.conteudo || '';
+      document.getElementById('modModalTitle').textContent = 'Editar Modelo';
+      document.getElementById('modeloModal').classList.add('active');
+    });
+  }
+
+  function excluirModelo(id) {
+    if (!confirm('Excluir modelo?')) return;
+    API.del('modelos/' + id).then(function() {
+      showAlert('Modelo excluído!', 'success');
+      carregarModelos();
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+  }
+
+  function usarModelo(id) {
+    showAlert('Redirecionando para conversas...', 'info');
+    sessionStorage.setItem('modeloId', id);
+    window.location.href = 'conversas.html';
+  }
+
+  carregarModelos();
+  </script>
+  <script src="../components/footer.js"></script>
+</body>
+</html>

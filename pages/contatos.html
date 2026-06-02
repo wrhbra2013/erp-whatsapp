@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contatos - ERP WhatsApp</title>
+  <link rel="stylesheet" href="../static/css/default.css">
+  <link rel="stylesheet" href="../static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
+  <script src="../static/js/api.js"></script>
+  <script src="../static/js/main.js"></script>
+</head>
+<body>
+  <script>var ROOT='..';</script>
+  <script src="../components/header.js"></script>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h2 style="font-size:1.3rem;color:var(--heading-color);margin:0;">Contatos</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:4px 0 0;">Contatos sincronizados com WhatsApp e ERP</p>
+    </div>
+    <button class="btn btn-primary" onclick="abrirModalContato()"><i class="bi bi-plus-lg"></i> Novo Contato</button>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>Email</th>
+          <th>Origem</th>
+          <th>Cliente ERP</th>
+          <th>Última Conversa</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="contatosTable">
+        <tr><td colspan="7" class="text-center text-muted" style="padding:40px;"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="contatoModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="contModalTitle">Novo Contato</h3>
+        <button class="modal-close" onclick="fecharModal('contatoModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="contatoForm" onsubmit="return salvarContato(event)">
+          <input type="hidden" id="cId">
+          <div class="form-row">
+            <div class="form-group"><label>Nome *</label><input type="text" id="cNome" class="form-control" required></div>
+            <div class="form-group"><label>Telefone *</label><input type="text" id="cTel" class="form-control input-phone" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Email</label><input type="email" id="cEmail" class="form-control"></div>
+            <div class="form-group"><label>Empresa</label><input type="text" id="cEmpresa" class="form-control"></div>
+          </div>
+          <div class="form-group"><label>Observações</label><textarea id="cObs" class="form-control"></textarea></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="fecharModal('contatoModal')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Contatos';
+
+  function carregarContatos() {
+    API.get('contatos').then(function(data) {
+      var contatos = Array.isArray(data) ? data : [];
+      var tbody = document.getElementById('contatosTable');
+      if (contatos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:40px;">Nenhum contato</td></tr>';
+        return;
+      }
+      tbody.innerHTML = contatos.map(function(c) {
+        return '<tr>' +
+          '<td><strong>' + (c.nome || '-') + '</strong></td>' +
+          '<td>' + formatPhone(c.telefone || '-') + '</td>' +
+          '<td>' + (c.email || '-') + '</td>' +
+          '<td><span class="badge badge-info">' + (c.origem || 'manual') + '</span></td>' +
+          '<td>' + (c.cliente_erp ? '<span class="badge badge-success">Sim</span>' : '<span class="badge badge-warning">Não</span>') + '</td>' +
+          '<td>' + (c.ultima_conversa ? formatDateTime(c.ultima_conversa) : '-') + '</td>' +
+          '<td><button class="btn btn-sm btn-secondary" onclick="editarContato(\'' + c.id + '\')"><i class="bi bi-pencil"></i></button></td>' +
+        '</tr>';
+      }).join('');
+    }).catch(function(err) {
+      document.getElementById('contatosTable').innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:40px;">Erro: ' + err.message + '</td></tr>';
+    });
+  }
+
+  function abrirModalContato() {
+    document.getElementById('contatoForm').reset();
+    document.getElementById('cId').value = '';
+    document.getElementById('contModalTitle').textContent = 'Novo Contato';
+    document.getElementById('contatoModal').classList.add('active');
+  }
+
+  function fecharModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  function salvarContato(e) {
+    e.preventDefault();
+    var id = document.getElementById('cId').value;
+    var data = {
+      nome: document.getElementById('cNome').value,
+      telefone: document.getElementById('cTel').value.replace(/\D/g, ''),
+      email: document.getElementById('cEmail').value,
+      empresa: document.getElementById('cEmpresa').value,
+      observacoes: document.getElementById('cObs').value
+    };
+    var p = id ? API.put('contatos/' + id, data) : API.post('contatos', data);
+    p.then(function() {
+      showAlert(id ? 'Contato atualizado!' : 'Contato criado!', 'success');
+      fecharModal('contatoModal');
+      carregarContatos();
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+    return false;
+  }
+
+  function editarContato(id) {
+    API.get('contatos/' + id).then(function(c) {
+      if (!c) return;
+      document.getElementById('cId').value = c.id;
+      document.getElementById('cNome').value = c.nome || '';
+      document.getElementById('cTel').value = formatPhone(c.telefone || '');
+      document.getElementById('cEmail').value = c.email || '';
+      document.getElementById('cEmpresa').value = c.empresa || '';
+      document.getElementById('cObs').value = c.observacoes || '';
+      document.getElementById('contModalTitle').textContent = 'Editar Contato';
+      document.getElementById('contatoModal').classList.add('active');
+    });
+  }
+
+  carregarContatos();
+  </script>
+  <script src="../components/footer.js"></script>
+</body>
+</html>

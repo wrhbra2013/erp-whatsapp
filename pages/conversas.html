@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversas - ERP WhatsApp</title>
+  <link rel="stylesheet" href="../static/css/default.css">
+  <link rel="stylesheet" href="../static/css/icons/bootstrap-icons.min.css">
+  <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
+  <script src="../static/js/api.js"></script>
+  <script src="../static/js/main.js"></script>
+</head>
+<body>
+  <script>var ROOT='..';</script>
+  <script src="../components/header.js"></script>
+
+  <div class="chat-layout">
+    <!-- Lista de conversas -->
+    <div class="chat-list">
+      <div class="chat-list-header">
+        <h4 style="font-size:1rem;margin:0;">Conversas</h4>
+        <input type="text" class="chat-list-search" placeholder="Pesquisar conversa..." onkeyup="filtrarConversas(this.value)">
+      </div>
+      <div class="chat-list-items" id="chatListItems">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Área de mensagens -->
+    <div class="chat-main" id="chatMainArea">
+      <div class="chat-empty" id="chatEmptyState">
+        <i class="bi bi-chat-dots" style="font-size:4rem;margin-bottom:16px;opacity:0.3;"></i>
+        <p>Selecione uma conversa</p>
+      </div>
+
+      <div id="chatActive" style="display:none;flex-direction:column;height:100%;">
+        <div class="chat-main-header" id="chatHeader">
+          <div class="chat-avatar" id="chatAvatar">?</div>
+          <div>
+            <div style="font-weight:600;font-size:0.95rem;" id="chatContactName">Carregando...</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);" id="chatContactPhone"></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="btn btn-sm btn-secondary" onclick="buscarDadosCliente()" title="Buscar no ERP"><i class="bi bi-search"></i></button>
+            <button class="btn btn-sm btn-secondary" onclick="enviarModelo()" title="Enviar modelo"><i class="bi bi-file-earmark-text"></i></button>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="chatInput" rows="1" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagem()}"></textarea>
+          <button class="chat-send-btn" onclick="enviarMensagem()"><i class="bi bi-send-fill"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('pageTitle').textContent = 'Conversas';
+
+  var conversas = [];
+  var mensagens = [];
+  var conversaAtualId = null;
+
+  function carregarConversas() {
+    API.get('conversas').then(function(data) {
+      conversas = Array.isArray(data) ? data : [];
+      renderConversas(conversas);
+    }).catch(function() {
+      document.getElementById('chatListItems').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Erro ao carregar</div>';
+    });
+  }
+
+  function renderConversas(lista) {
+    var container = document.getElementById('chatListItems');
+    if (lista.length === 0) {
+      container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);"><i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>Nenhuma conversa</div>';
+      return;
+    }
+    container.innerHTML = lista.map(function(c) {
+      var isActive = String(c.id) === String(conversaAtualId);
+      var nome = c.contato_nome || c.contato_telefone || 'Desconhecido';
+      var ini = nome.charAt(0).toUpperCase();
+      var preview = c.ultima_mensagem || 'Sem mensagens';
+      var time = c.ultima_atividade ? formatDateTime(c.ultima_atividade).slice(0, 17) : '';
+      return '<div class="chat-list-item ' + (isActive ? 'active' : '') + '" onclick="selecionarConversa(\'' + c.id + '\')">' +
+        '<div class="chat-avatar">' + ini + '</div>' +
+        '<div class="chat-info">' +
+          '<div class="chat-info-header">' +
+            '<span class="chat-name">' + nome + '</span>' +
+            '<span class="chat-time">' + time + '</span>' +
+          '</div>' +
+          '<div class="chat-preview">' + preview + '</div>' +
+        '</div>' +
+        (c.nao_lidas > 0 ? '<div class="chat-unread">' + c.nao_lidas + '</div>' : '') +
+      '</div>';
+    }).join('');
+  }
+
+  function filtrarConversas(query) {
+    var q = query.toLowerCase();
+    var filtradas = conversas.filter(function(c) {
+      var nome = (c.contato_nome || '').toLowerCase();
+      var tel = (c.contato_telefone || '').toLowerCase();
+      return nome.indexOf(q) !== -1 || tel.indexOf(q) !== -1;
+    });
+    renderConversas(filtradas);
+  }
+
+  function selecionarConversa(id) {
+    conversaAtualId = id;
+    document.getElementById('chatEmptyState').style.display = 'none';
+    document.getElementById('chatActive').style.display = 'flex';
+
+    var c = conversas.find(function(x) { return String(x.id) === String(id); });
+    if (c) {
+      var nome = c.contato_nome || c.contato_telefone || 'Desconhecido';
+      document.getElementById('chatContactName').textContent = nome;
+      document.getElementById('chatContactPhone').textContent = formatPhone(c.contato_telefone || '');
+      document.getElementById('chatAvatar').textContent = nome.charAt(0).toUpperCase();
+    }
+
+    renderConversas(conversas);
+    carregarMensagens(id);
+  }
+
+  function carregarMensagens(conversaId) {
+    var container = document.getElementById('chatMessages');
+    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    API.get('conversas/' + conversaId + '/mensagens').then(function(data) {
+      mensagens = Array.isArray(data) ? data : [];
+      renderMensagens();
+    }).catch(function() {
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Erro ao carregar mensagens</div>';
+    });
+  }
+
+  function renderMensagens() {
+    var container = document.getElementById('chatMessages');
+    if (mensagens.length === 0) {
+      container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);"><i class="bi bi-chat" style="font-size:2rem;display:block;margin-bottom:8px;"></i>Nenhuma mensagem. Inicie a conversa!</div>';
+      return;
+    }
+    container.innerHTML = mensagens.map(function(m) {
+      var isOut = m.direcao === 'enviada' || m.origem === 'agente';
+      var time = m.created_at ? formatDateTime(m.created_at).slice(11, 16) : '';
+      return '<div class="message ' + (isOut ? 'outgoing' : 'incoming') + '">' +
+        '<div>' + (m.texto || m.conteudo || '') + '</div>' +
+        '<div class="message-time">' + time + '</div>' +
+      '</div>';
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function enviarMensagem() {
+    var input = document.getElementById('chatInput');
+    var texto = input.value.trim();
+    if (!texto || !conversaAtualId) return;
+
+    API.sendMessage(conversaAtualId, texto).then(function() {
+      input.value = '';
+      carregarMensagens(conversaAtualId);
+      carregarConversas();
+    }).catch(function(err) {
+      showAlert('Erro ao enviar: ' + err.message, 'danger');
+    });
+  }
+
+  function buscarDadosCliente() {
+    if (!conversaAtualId) return;
+    var c = conversas.find(function(x) { return String(x.id) === String(conversaAtualId); });
+    if (!c || !c.contato_telefone) { showAlert('Telefone não disponível', 'warning'); return; }
+
+    API.buscarCliente(c.contato_telefone).then(function(cliente) {
+      if (cliente && cliente.nome) {
+        showAlert('Cliente encontrado: ' + cliente.nome + (cliente.documento ? ' (' + cliente.documento + ')' : ''), 'success');
+      } else {
+        showAlert('Cliente não encontrado no ERP', 'info');
+      }
+    }).catch(function() {
+      showAlert('ERP indisponível no momento', 'warning');
+    });
+  }
+
+  function enviarModelo() {
+    showAlert('Selecione um modelo na página de Modelos', 'info');
+  }
+
+  // Auto-refresh
+  carregarConversas();
+  setInterval(function() {
+    if (conversaAtualId) carregarMensagens(conversaAtualId);
+    carregarConversas();
+  }, 15000);
+  </script>
+
+  <script src="../components/footer.js"></script>
+</body>
+</html>
