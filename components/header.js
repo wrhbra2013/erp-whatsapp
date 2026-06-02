@@ -8,16 +8,16 @@ document.write('\
     </div>\
     <nav class="sidebar-nav">\
       <div class="nav-section">Principal</div>\
-      <a href="index.html"><i class="bi bi-chat-dots"></i> Dashboard</a>\
-      <a href="pages/conversas.html"><i class="bi bi-chat-square-text"></i> Conversas</a>\
+      <a href="' + ROOT + '/index.html"><i class="bi bi-chat-dots"></i> Dashboard</a>\
+      <a href="' + ROOT + '/pages/conversas.html"><i class="bi bi-chat-square-text"></i> Conversas</a>\
       <div class="nav-section">Gestão</div>\
-      <a href="pages/contatos.html"><i class="bi bi-people"></i> Contatos</a>\
-      <a href="pages/modelos.html"><i class="bi bi-file-earmark-text"></i> Modelos de Mensagem</a>\
-      <a href="pages/automacao.html"><i class="bi bi-gear-wide-connected"></i> Automação</a>\
+      <a href="' + ROOT + '/pages/contatos.html"><i class="bi bi-people"></i> Contatos</a>\
+      <a href="' + ROOT + '/pages/modelos.html"><i class="bi bi-file-earmark-text"></i> Modelos de Mensagem</a>\
+      <a href="' + ROOT + '/pages/automacao.html"><i class="bi bi-gear-wide-connected"></i> Automação</a>\
       <div class="nav-section">Relatórios</div>\
-      <a href="pages/relatorios.html"><i class="bi bi-bar-chart"></i> Relatórios</a>\
+      <a href="' + ROOT + '/pages/relatorios.html"><i class="bi bi-bar-chart"></i> Relatórios</a>\
       <div class="nav-section">Sistema</div>\
-      <a href="pages/configuracoes.html"><i class="bi bi-gear"></i> Configurações</a>\
+      <a href="' + ROOT + '/pages/configuracoes.html"><i class="bi bi-gear"></i> Configurações</a>\
       <a href="#" onclick="API.logout();return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>\
     </nav>\
   </aside>\
@@ -29,7 +29,7 @@ document.write('\
       </div>\
       <div class="topbar-right">\
         <span style="font-size:0.85rem;color:var(--text-muted);" id="userDisplay"></span>\
-        <span id="wppStatus" class="badge badge-success" style="font-size:0.7rem;">WhatsApp Conectado</span>\
+        <span id="wppStatus" class="badge badge-success" style="font-size:0.7rem;">Verificando...</span>\
       </div>\
     </header>\
     <main class="page-content">');

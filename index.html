@@ -105,30 +105,84 @@
   <script>
   document.getElementById('pageTitle').textContent = 'Dashboard';
 
-  var API_BASE = 'https://api.projetosdinamicos.com.br/whatsapp';
-  var token = localStorage.getItem('wpp_token');
-  var headers = {};
-  if (token) headers['Authorization'] = 'Bearer ' + token;
-
-  function countIt(endpoint, elId) {
-    fetch(API_BASE + '/' + endpoint, { headers: headers })
-      .then(function(r) { return r.ok ? r.json() : []; })
-      .then(function(d) {
-        var el = document.getElementById(elId);
-        if (el && Array.isArray(d)) el.textContent = d.length;
-      }).catch(function() {});
+  function carregarStats() {
+    API.get('conversas').then(function(d) {
+      document.getElementById('statConversas').textContent = Array.isArray(d) ? d.length : 0;
+    }).catch(function(){});
+    API.get('contatos').then(function(d) {
+      document.getElementById('statContatos').textContent = Array.isArray(d) ? d.length : 0;
+    }).catch(function(){});
+    API.get('mensagens/hoje').then(function(d) {
+      document.getElementById('statEnviadas').textContent = Array.isArray(d) ? d.length : 0;
+    }).catch(function(){});
+    API.get('automacoes').then(function(d) {
+      document.getElementById('statAuto').textContent = Array.isArray(d) ? d.length : 0;
+    }).catch(function(){});
   }
 
-  countIt('conversas', 'statConversas');
-  countIt('contatos', 'statContatos');
-  countIt('mensagens/hoje', 'statEnviadas');
-  countIt('automacoes', 'statAuto');
+  function carregarConversasRecentes() {
+    API.get('conversas').then(function(d) {
+      var conversas = Array.isArray(d) ? d : [];
+      var tbody = document.getElementById('recentConversas');
+      if (conversas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:40px;"><i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>Nenhuma conversa recente</td></tr>';
+        return;
+      }
+      conversas.sort(function(a,b) { return new Date(b.ultima_atividade||b.created_at) - new Date(a.ultima_atividade||a.created_at); });
+      tbody.innerHTML = conversas.slice(0, 5).map(function(c) {
+        return '<tr>' +
+          '<td><strong>' + (c.contato_nome || c.contato_telefone || '-') + '</strong></td>' +
+          '<td>' + formatPhone(c.contato_telefone || '-') + '</td>' +
+          '<td>' + (c.ultima_mensagem || '-') + '</td>' +
+          '<td><span class="badge ' + ((c.status||'Ativa')==='Ativa'?'badge-success':'badge-warning') + '">' + (c.status||'Ativa') + '</span></td>' +
+          '<td>' + formatDateTime(c.ultima_atividade||c.created_at) + '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(function(){});
+  }
+
+  function carregarModelosRecentes() {
+    API.get('modelos').then(function(d) {
+      var modelos = Array.isArray(d) ? d : [];
+      var div = document.getElementById('recentModelos');
+      if (modelos.length === 0) {
+        div.innerHTML = '<p class="text-muted" style="text-align:center;padding:20px;">Nenhum modelo cadastrado</p>';
+        return;
+      }
+      div.innerHTML = modelos.slice(0, 3).map(function(m) {
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--border-color);font-size:0.85rem;">' +
+          '<strong>' + (m.titulo || '-') + '</strong> <span class="badge badge-info" style="font-size:0.65rem;">' + (m.categoria || 'geral') + '</span>' +
+          '</div>';
+      }).join('');
+    }).catch(function(){});
+  }
+
+  function carregarAutomacoesRecentes() {
+    API.get('automacoes').then(function(d) {
+      var auto = Array.isArray(d) ? d : [];
+      var div = document.getElementById('recentAutomacoes');
+      if (auto.length === 0) {
+        div.innerHTML = '<p class="text-muted" style="text-align:center;padding:20px;">Nenhuma automação configurada</p>';
+        return;
+      }
+      div.innerHTML = auto.slice(0, 3).map(function(r) {
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--border-color);font-size:0.85rem;">' +
+          '<strong>' + (r.gatilho || '-') + '</strong> → ' + (r.resposta || r.modelo_titulo || 'Resposta automática') +
+          '</div>';
+      }).join('');
+    }).catch(function(){});
+  }
 
   var user = API.getUser();
   if (user) {
     var ud = document.getElementById('userDisplay');
     if (ud) ud.textContent = user.nome || user.email;
   }
+
+  carregarStats();
+  carregarConversasRecentes();
+  carregarModelosRecentes();
+  carregarAutomacoesRecentes();
   </script>
 
   <script src="components/footer.js"></script>

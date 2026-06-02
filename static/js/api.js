@@ -12,11 +12,17 @@ var API = (function() {
     return h;
   }
 
+  function getRoot() {
+    try { if (typeof ROOT !== 'undefined') return ROOT; } catch(e) {}
+    return '.';
+  }
+
   function handleResponse(r) {
     if (!r.ok) {
       if (r.status === 401) {
         localStorage.removeItem('wpp_token');
-        window.location.href = 'login/';
+        localStorage.removeItem('wpp_user');
+        window.location.href = getRoot() + '/login/';
         return;
       }
       return r.json().then(function(e) { throw new Error(e.error || 'Erro na requisição'); });
@@ -62,7 +68,7 @@ var API = (function() {
     logout: function() {
       localStorage.removeItem('wpp_token');
       localStorage.removeItem('wpp_user');
-      window.location.href = 'login/';
+      window.location.href = getRoot() + '/login/';
     },
     getUser: function() {
       try { return JSON.parse(localStorage.getItem('wpp_user')); } catch(e) { return null; }

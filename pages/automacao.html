@@ -72,7 +72,7 @@
             <div><strong>Busca de Cliente</strong><br><small class="text-muted">Consulta dados do cliente no ERP pelo telefone</small></div>
           </div>
           <label class="switch">
-            <input type="checkbox" onchange="showAlert('Integração atualizada!','success')" checked>
+            <input type="checkbox" id="integBuscaCliente" onchange="salvarIntegracoes()" checked>
             <span class="slider"></span>
           </label>
         </div>
@@ -84,7 +84,7 @@
             <div><strong>Consulta de Produto</strong><br><small class="text-muted">Busca preço e disponibilidade no catálogo</small></div>
           </div>
           <label class="switch">
-            <input type="checkbox" onchange="showAlert('Integração atualizada!','success')">
+            <input type="checkbox" id="integConsultaProduto" onchange="salvarIntegracoes()">
             <span class="slider"></span>
           </label>
         </div>
@@ -96,7 +96,7 @@
             <div><strong>Notificação NF-e</strong><br><small class="text-muted">Envia link da NF-e por WhatsApp automaticamente</small></div>
           </div>
           <label class="switch">
-            <input type="checkbox" onchange="showAlert('Integração atualizada!','success')" checked>
+            <input type="checkbox" id="integNotificaNFE" onchange="salvarIntegracoes()" checked>
             <span class="slider"></span>
           </label>
         </div>
@@ -173,6 +173,28 @@
     document.getElementById('botStatusText').textContent = ativo ? 'Chatbot Ativo' : 'Chatbot Inativo';
     API.post('automacoes/toggle', { ativo: ativo }).then(function() {
       showAlert(ativo ? 'Bot ativado!' : 'Bot desativado!', ativo ? 'success' : 'warning');
+    }).catch(function() {});
+  }
+
+  function salvarIntegracoes() {
+    var data = {
+      busca_cliente: document.getElementById('integBuscaCliente').checked,
+      consulta_produto: document.getElementById('integConsultaProduto').checked,
+      notifica_nfe: document.getElementById('integNotificaNFE').checked
+    };
+    API.post('integracoes', data).then(function() {
+      showAlert('Integrações atualizadas!', 'success');
+    }).catch(function(err) {
+      showAlert('Erro: ' + err.message, 'danger');
+    });
+  }
+
+  function carregarIntegracoes() {
+    API.get('integracoes').then(function(data) {
+      if (!data) return;
+      if (data.busca_cliente !== undefined) document.getElementById('integBuscaCliente').checked = !!data.busca_cliente;
+      if (data.consulta_produto !== undefined) document.getElementById('integConsultaProduto').checked = !!data.consulta_produto;
+      if (data.notifica_nfe !== undefined) document.getElementById('integNotificaNFE').checked = !!data.notifica_nfe;
     }).catch(function() {});
   }
 
@@ -270,6 +292,7 @@
   }
 
   carregarRegras();
+  carregarIntegracoes();
   </script>
   <script src="../components/footer.js"></script>
 </body>

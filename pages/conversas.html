@@ -187,7 +187,27 @@
   }
 
   function enviarModelo() {
-    showAlert('Selecione um modelo na página de Modelos', 'info');
+    if (!conversaAtualId) { showAlert('Selecione uma conversa primeiro', 'warning'); return; }
+    var modeloId = sessionStorage.getItem('modeloId');
+    if (!modeloId) { showAlert('Selecione um modelo na página de Modelos primeiro', 'info'); return; }
+
+    API.get('modelos/' + modeloId).then(function(m) {
+      if (!m || !m.conteudo) { showAlert('Modelo não encontrado', 'danger'); return; }
+      var c = conversas.find(function(x) { return String(x.id) === String(conversaAtualId); });
+      var texto = (m.conteudo || '')
+        .replace(/\{\{nome\}\}/g, (c && c.contato_nome) || '')
+        .replace(/\{\{telefone\}\}/g, (c && c.contato_telefone) || '');
+      API.sendMessage(conversaAtualId, texto).then(function() {
+        showAlert('Modelo enviado com sucesso!', 'success');
+        sessionStorage.removeItem('modeloId');
+        carregarMensagens(conversaAtualId);
+        carregarConversas();
+      }).catch(function(err) {
+        showAlert('Erro ao enviar modelo: ' + err.message, 'danger');
+      });
+    }).catch(function() {
+      showAlert('Erro ao carregar modelo', 'danger');
+    });
   }
 
   // Auto-refresh
