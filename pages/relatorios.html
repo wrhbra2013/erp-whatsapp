@@ -10,6 +10,8 @@
   <link rel="icon" type="image/x-icon" href="../static/css/favicon/favicon.ico">
   <script src="../static/js/api.js"></script>
   <script src="../static/js/main.js"></script>
+  <script src="../static/js/pdfmake/pdfmake.min.js"></script>
+  <script src="../static/js/pdfmake/vfs_fonts.js"></script>
   <style>
     .report-card { background: var(--container-bg); border-radius: 12px; padding: 24px; box-shadow: var(--container-shadow); cursor: pointer; transition: all 0.2s; border: 1px solid var(--border-color); }
     .report-card:hover { border-color: var(--brand-secondary); box-shadow: 0 4px 12px rgba(18,140,126,0.15); transform: translateY(-2px); }
@@ -63,37 +65,89 @@
   <script>
   document.getElementById('pageTitle').textContent = 'Relatórios';
 
+  var titles = {
+    mensagens: 'Relatório de Mensagens',
+    conversas: 'Relatório de Conversas',
+    contatos: 'Relatório de Contatos',
+    automacao: 'Relatório de Automação'
+  };
+  var endpointMap = {
+    mensagens: 'mensagens',
+    conversas: 'conversas',
+    contatos: 'contatos',
+    automacao: 'automacoes'
+  };
+
+  function buildTableBody(data) {
+    if (!data || data.length === 0) {
+      return { body: [['Nenhum registro disponível']], widths: ['*'] };
+    }
+    var cols = Object.keys(data[0]).filter(function(k) { return k !== 'id' && k !== 'senha'; }).slice(0, 7);
+    var body = [];
+    body.push(cols.map(function(c) { return { text: c.replace(/_/g, ' ').toUpperCase(), style: 'tableHeader' }; }));
+    data.slice(0, 100).forEach(function(row) {
+      body.push(cols.map(function(c) {
+        var v = row[c];
+        if (v === null || v === undefined) return '-';
+        if (typeof v === 'number') return { text: String(v), alignment: 'right' };
+        return String(v).slice(0, 60);
+      }));
+    });
+    return { body: body, widths: cols.map(function() { return 'auto'; }) };
+  }
+
   function gerarRelatorio(tipo) {
+    var dt = new Date();
+    var dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR');
+    var docDef = {
+      pageSize: 'A4',
+      pageMargins: [40, 60, 40, 60],
+      header: { text: titles[tipo], style: 'header', margin: [40, 20, 40, 0] },
+      footer: { text: 'ERP WhatsApp — Gerado em ' + dataStr + ' | Página {{page}} de {{pages}}', style: 'footer', alignment: 'center' },
+      content: [
+        { text: titles[tipo], style: 'title' },
+        { text: 'Gerado em: ' + dataStr, style: 'subtitle', margin: [0, 0, 0, 20] },
+        { text: 'Aguarde, carregando dados...', style: 'loading' }
+      ],
+      styles: {
+        header: { fontSize: 10, color: '#6b7280', alignment: 'center' },
+        footer: { fontSize: 8, color: '#9ca3af' },
+        title: { fontSize: 16, bold: true, color: '#075e54' },
+        subtitle: { fontSize: 9, color: '#6b7280' },
+        loading: { fontSize: 11, color: '#9ca3af', italics: true },
+        tableHeader: { bold: true, fontSize: 8, fillColor: '#075e54', color: '#ffffff', alignment: 'center', margin: [4, 4] }
+      },
+      defaultStyle: { fontSize: 8 }
+    };
+
     var output = document.getElementById('reportOutput');
     output.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-    var titles = { mensagens: 'Mensagens', conversas: 'Conversas', contatos: 'Contatos', automacao: 'Automação' };
-    var endpointMap = { mensagens: 'mensagens', conversas: 'conversas', contatos: 'contatos', automacao: 'automacoes' };
     var ep = endpointMap[tipo] || 'conversas';
-
     API.get(ep).then(function(data) {
-      var items = Array.isArray(data) ? data : [];
-      var html = '<h4 style="margin-bottom:16px;">' + titles[tipo] + '</h4>' +
-        '<p class="text-muted" style="margin-bottom:16px;">Total: <strong>' + items.length + '</strong> registros</p>';
-      if (items.length > 0) {
-        var cols = Object.keys(items[0]).filter(function(k) { return k !== 'id' && k !== 'senha'; }).slice(0, 6);
-        html += '<div class="table-container"><table><thead><tr>' +
-          cols.map(function(c) { return '<th>' + c.replace(/_/g, ' ').toUpperCase() + '</th>'; }).join('') +
-          '</tr></thead><tbody>';
-        items.slice(0, 30).forEach(function(row) {
-          html += '<tr>' + cols.map(function(c) {
-            var v = row[c];
-            if (v === null || v === undefined) return '<td>-</td>';
-            return '<td>' + String(v).slice(0, 60) + '</td>';
-          }).join('') + '</tr>';
-        });
-        html += '</tbody></table></div><p class="text-muted" style="margin-top:8px;font-size:0.8rem;">Exibindo até 30 registros</p>';
-      } else {
-        html += '<p class="text-muted" style="text-align:center;padding:20px;">Nenhum dado disponível</p>';
+      data = Array.isArray(data) ? data : [];
+      var table = buildTableBody(data);
+      docDef.content = [
+        { text: titles[tipo], style: 'title' },
+        { text: dataStr, style: 'subtitle', margin: [0, 0, 0, 20] },
+        { text: 'Total de registros: ' + data.length, style: 'subtitle', margin: [0, 0, 0, 10] },
+        { table: table, layout: 'lightHorizontalLines', margin: [0, 0, 0, 20] }
+      ];
+      if (data.length > 100) {
+        docDef.content.push(
+          { text: '* Exibindo os primeiros 100 registros. Total: ' + data.length, style: 'subtitle', italics: true }
+        );
       }
+
+      pdfMake.createPdf(docDef).download(tipo + '_' + dt.getTime() + '.pdf');
+
+      var html = '<h4 style="margin-bottom:16px;">' + titles[tipo] + '</h4>' +
+        '<p class="text-muted" style="margin-bottom:16px;">PDF gerado com sucesso! <strong>' + data.length + ' registros</strong></p>' +
+        '<div style="text-align:center;padding:20px;"><i class="bi bi-filetype-pdf" style="font-size:3rem;color:var(--brand-danger);display:block;margin-bottom:8px;"></i>' +
+        '<p>O download do PDF foi iniciado automaticamente.</p></div>';
       output.innerHTML = html;
     }).catch(function(err) {
-      output.innerHTML = '<div class="alert alert-danger">Erro: ' + err.message + '</div>';
+      output.innerHTML = '<div class="alert alert-danger">Erro ao gerar relatório: ' + err.message + '</div>';
     });
   }
   </script>
