@@ -52,6 +52,33 @@
 
   <div class="card mb-6">
     <div class="card-header">
+      <h3 class="card-title"><i class="bi bi-whatsapp"></i> Conexão WhatsApp</h3>
+      <div>
+        <span class="badge badge-secondary" id="dashWppStatus">Verificando...</span>
+      </div>
+    </div>
+    <div class="card-body" style="text-align:center;">
+      <div id="dashQrContainer" style="display:none;background:#fff;padding:16px;border-radius:8px;display:inline-block;margin:0 auto;">
+        <img id="dashQrImage" src="" alt="QR Code" style="width:220px;height:220px;image-rendering:pixelated;">
+        <p style="font-size:0.85rem;color:#666;margin-top:8px;">Escaneie com o WhatsApp do seu celular</p>
+      </div>
+      <div id="dashConnectedInfo" style="display:none;">
+        <i class="bi bi-check-circle-fill" style="font-size:2.5rem;color:#25D366;"></i>
+        <p style="font-size:1rem;color:var(--text-color);margin-top:4px;">WhatsApp conectado!</p>
+      </div>
+      <div id="dashDisconnectedInfo">
+        <i class="bi bi-plug" style="font-size:2.5rem;color:#6b7280;"></i>
+        <p style="font-size:1rem;color:var(--text-muted);margin-top:4px;">Desconectado</p>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;">
+        <button class="btn btn-primary" onclick="conectarWpp()" id="dashBtnConnect"><i class="bi bi-plug"></i> Conectar</button>
+        <button class="btn btn-danger" onclick="desconectarWpp()" id="dashBtnDisconnect" style="display:none;"><i class="bi bi-plug-fill"></i> Desconectar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-6">
+    <div class="card-header">
       <h3 class="card-title"><i class="bi bi-clock-history"></i> Últimas Conversas</h3>
       <a href="pages/conversas.html" class="btn btn-primary btn-sm">Ver Todas</a>
     </div>
@@ -174,6 +201,57 @@
     }).catch(function(){});
   }
 
+  var dashWppInterval = null;
+
+  function atualizarStatusWpp() {
+    API.get('status').then(function(s) {
+      var badge = document.getElementById('dashWppStatus');
+      var qr = document.getElementById('dashQrContainer');
+      var qrImg = document.getElementById('dashQrImage');
+      var conn = document.getElementById('dashConnectedInfo');
+      var disc = document.getElementById('dashDisconnectedInfo');
+      var btnC = document.getElementById('dashBtnConnect');
+      var btnD = document.getElementById('dashBtnDisconnect');
+
+      if (s.status === 'connected' && s.ready) {
+        badge.className = 'badge badge-success'; badge.textContent = 'Conectado';
+        qr.style.display = 'none'; conn.style.display = 'block'; disc.style.display = 'none';
+        btnC.style.display = 'none'; btnD.style.display = 'inline-flex';
+        if (dashWppInterval) { clearInterval(dashWppInterval); dashWppInterval = null; }
+      } else if (s.status === 'connecting') {
+        badge.className = 'badge badge-warning'; badge.textContent = 'Aguardando QR Code...';
+        conn.style.display = 'none'; disc.style.display = 'none';
+        btnC.style.display = 'none'; btnD.style.display = 'inline-flex';
+        if (s.hasQrCode) {
+          qr.style.display = 'inline-block';
+          API.get('qrcode').then(function(q) { if (q.qrcode) qrImg.src = q.qrcode; }).catch(function(){});
+        } else {
+          qr.style.display = 'none';
+        }
+      } else {
+        badge.className = 'badge badge-secondary'; badge.textContent = 'Desconectado';
+        qr.style.display = 'none'; conn.style.display = 'none'; disc.style.display = 'block';
+        btnC.style.display = 'inline-flex'; btnD.style.display = 'none';
+      }
+    }).catch(function(){});
+  }
+
+  function conectarWpp() {
+    API.post('connect', {}).then(function() {
+      showAlert('Conectando ao WhatsApp...', 'info');
+      atualizarStatusWpp();
+      if (!dashWppInterval) dashWppInterval = setInterval(atualizarStatusWpp, 3000);
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+  }
+
+  function desconectarWpp() {
+    API.post('logout', {}).then(function() {
+      showAlert('WhatsApp desconectado.', 'success');
+      if (dashWppInterval) { clearInterval(dashWppInterval); dashWppInterval = null; }
+      atualizarStatusWpp();
+    }).catch(function(err) { showAlert('Erro: ' + err.message, 'danger'); });
+  }
+
   var user = API.getUser();
   if (user) {
     var ud = document.getElementById('userDisplay');
@@ -184,6 +262,7 @@
   carregarConversasRecentes();
   carregarModelosRecentes();
   carregarAutomacoesRecentes();
+  setTimeout(atualizarStatusWpp, 500);
   </script>
 
   <script src="components/footer.js"></script>

@@ -172,18 +172,18 @@
 
   function toggleBot(ativo) {
     document.getElementById('botStatusText').textContent = ativo ? 'Chatbot Ativo' : 'Chatbot Inativo';
-    API.post('automacoes/toggle', { ativo: ativo }).then(function() {
+    API.post('settings', { bot_ativo: ativo ? 'true' : 'false' }).then(function() {
       showAlert(ativo ? 'Bot ativado!' : 'Bot desativado!', ativo ? 'success' : 'warning');
     }).catch(function() {});
   }
 
   function salvarIntegracoes() {
     var data = {
-      busca_cliente: document.getElementById('integBuscaCliente').checked,
-      consulta_produto: document.getElementById('integConsultaProduto').checked,
-      notifica_nfe: document.getElementById('integNotificaNFE').checked
+      integ_busca_cliente: document.getElementById('integBuscaCliente').checked ? 'true' : 'false',
+      integ_consulta_produto: document.getElementById('integConsultaProduto').checked ? 'true' : 'false',
+      integ_notifica_nfe: document.getElementById('integNotificaNFE').checked ? 'true' : 'false'
     };
-    API.post('integracoes', data).then(function() {
+    API.post('settings', data).then(function() {
       showAlert('Integrações atualizadas!', 'success');
     }).catch(function(err) {
       showAlert('Erro: ' + err.message, 'danger');
@@ -191,11 +191,11 @@
   }
 
   function carregarIntegracoes() {
-    API.get('integracoes').then(function(data) {
+    API.get('settings').then(function(data) {
       if (!data) return;
-      if (data.busca_cliente !== undefined) document.getElementById('integBuscaCliente').checked = !!data.busca_cliente;
-      if (data.consulta_produto !== undefined) document.getElementById('integConsultaProduto').checked = !!data.consulta_produto;
-      if (data.notifica_nfe !== undefined) document.getElementById('integNotificaNFE').checked = !!data.notifica_nfe;
+      if (data.integ_busca_cliente !== undefined) document.getElementById('integBuscaCliente').checked = data.integ_busca_cliente === 'true';
+      if (data.integ_consulta_produto !== undefined) document.getElementById('integConsultaProduto').checked = data.integ_consulta_produto === 'true';
+      if (data.integ_notifica_nfe !== undefined) document.getElementById('integNotificaNFE').checked = data.integ_notifica_nfe === 'true';
     }).catch(function() {});
   }
 

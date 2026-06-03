@@ -25,7 +25,7 @@ document.write('\
   var wppBadge = document.getElementById('wppStatus');
 
   function checkStatus() {
-    API.get('whatsapp/status').then(function(s) {
+    API.get('status').then(function(s) {
       var connected = s && (s.status === 'connected' || s.ready);
       if (statusDot) statusDot.style.background = connected ? 'var(--brand-success)' : 'var(--brand-warning)';
       if (statusText) statusText.textContent = connected ? 'Conectado' : (s && s.status === 'connecting' ? 'Conectando...' : 'Desconectado');

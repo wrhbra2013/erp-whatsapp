@@ -221,7 +221,7 @@
   var wppCheckInterval = null;
 
   function atualizarStatusWpp() {
-    API.get('whatsapp/status').then(function(s) {
+    API.get('status').then(function(s) {
       var badge = document.getElementById('wppStatusBadge');
       var qrContainer = document.getElementById('wppQrContainer');
       var qrImage = document.getElementById('wppQrImage');
@@ -247,7 +247,7 @@
         btnDisconnect.style.display = 'inline-flex';
         if (s.hasQrCode) {
           qrContainer.style.display = 'inline-block';
-          API.get('whatsapp/qrcode').then(function(q) {
+          API.get('qrcode').then(function(q) {
             if (q.qrcode) qrImage.src = q.qrcode;
           }).catch(function() {});
         }
@@ -272,7 +272,7 @@
   }
 
   function conectarWhatsApp() {
-    API.post('whatsapp/connect', {}).then(function() {
+    API.post('connect', {}).then(function() {
       showAlert('Conectando ao WhatsApp... Aguarde o QR Code.', 'info');
       atualizarStatusWpp();
       if (!wppCheckInterval) {
@@ -284,7 +284,7 @@
   }
 
   function desconectarWhatsApp() {
-    API.post('whatsapp/logout', {}).then(function() {
+    API.post('logout', {}).then(function() {
       showAlert('WhatsApp desconectado.', 'success');
       if (wppCheckInterval) { clearInterval(wppCheckInterval); wppCheckInterval = null; }
       atualizarStatusWpp();
